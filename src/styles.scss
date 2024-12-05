@@ -1,1 +1,27 @@
 /* You can add global styles to this file, and also import other style files */
+@import 'highlight.js/styles/github.css';
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+
+body {
+    margin: 0;
+    font-family: Roboto, Arial, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.light-theme {
+    --primary-color: #3f51b5;
+}
+
+body.dark-theme {
+    --primary-color: #bb86fc;
+}
