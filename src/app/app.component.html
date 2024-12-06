@@ -33,25 +33,28 @@
           <h4 class="sub-concept-desc">
             {{section.sub_concept_desc}}
           </h4>
-        
-          <pre>
-            <code [highlight]="section.fnCode" language="javascript"></code>
-          </pre>
-        
-          <button mat-raised-button color="primary" (click)="executeCode(section.fnCode, section.fnResult, section)">Execute</button>
-        
-          <mat-card *ngIf="section.showCard" class="result-card" [ngClass]="lightTheme ? 'light-theme' : 'dark-theme'">
-            <div *ngIf="section.isLoading" class="spinner-container">
-              <mat-spinner></mat-spinner>
-            </div>
-            <div *ngIf="!section.isLoading">
-              <h3>Execution Result</h3>
-              <p *ngFor="let line of section.fnResult.value">{{ line }}</p>
-            </div>
-          </mat-card> 
+          <ng-container *ngIf="section.fnCode">
+            <pre>
+              <code [highlight]="section.fnCode" language="javascript"></code>
+            </pre>
+          
+            <button *ngIf="section.fnResult" mat-raised-button color="primary" class="execute-button" (click)="executeCode(section.fnCode, section.fnResult, section)">Execute</button>
+          
+            <mat-card *ngIf="section.showCard" class="result-card" [ngClass]="lightTheme ? 'light-theme' : 'dark-theme'">
+              <div *ngIf="section.isLoading" class="spinner-container">
+                <mat-spinner></mat-spinner>
+              </div>
+              <div *ngIf="!section.isLoading">
+                <h3>Execution Result</h3>
+                <p *ngFor="let line of section.fnResult.value">{{ line }}</p>
+              </div>
+            </mat-card>   
+          </ng-container>
           <br>  
           <br>   
         </ng-container>
+        <br>
+        <br>
     </ng-container>
   </div>  
 </div>
