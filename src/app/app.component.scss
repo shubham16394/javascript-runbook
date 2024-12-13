@@ -1,6 +1,5 @@
 /* General Layout */
 .main-container {
-    // height: 100%;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -51,7 +50,6 @@
     object-fit: contain;
 }
 
-
 .concept {
     text-align: left;
 }
@@ -63,12 +61,12 @@
 .sub-concept-heading {
     text-align: left;
     font-weight: bold;
-    margin: 0 !important
+    margin: 0 !important;
 }
 
 .sub-concept-desc {
     text-align: left;
-    margin: 0 !important
+    margin: 0 !important;
 }
 
 .subheading {
@@ -119,6 +117,8 @@ code {
 
 /* Light and Dark Theme Variables */
 body.light-theme {
+    --primary-color: #3f51b5; /* Default primary color for light theme */
+    --hover-primary-color: #303f9f; /* Hover primary color for light theme */
     --heading-color: #3f51b5;
     --subheading-color: #757575;
     --code-background: #f5f5f5;
@@ -127,9 +127,54 @@ body.light-theme {
 }
 
 body.dark-theme {
+    --primary-color: #bb86fc; /* Default primary color for dark theme */
+    --hover-primary-color: #7e57c2; /* Hover primary color for dark theme */
     --heading-color: #bb86fc;
     --subheading-color: #b0bec5;
     --code-background: #333333;
     background-color: #282C34;
     color: #ffffff;
+}
+
+.scrollable-container {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.index-container {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.index-container ul {
+    list-style: none;
+    padding: 0;
+}
+
+.index-container ul li {
+    margin: 5px 0;
+}
+
+.index-container ul li a {
+    color: var(--primary-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.index-container ul li a:hover {
+    color: var(--hover-primary-color);
+}
+
+.scroll-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }

@@ -1,4 +1,4 @@
-<div [ngClass]="lightTheme ? 'light-theme' : 'dark-theme'" class="main-container">
+<!-- <div [ngClass]="lightTheme ? 'light-theme' : 'dark-theme'" class="main-container">
   <div class="header">
     <mat-slide-toggle
       class="theme-toggle"
@@ -44,9 +44,9 @@
               <div *ngIf="section.isLoading" class="spinner-container">
                 <mat-spinner></mat-spinner>
               </div>
-              <div *ngIf="!section.isLoading">
+              <div *ngIf="!section.isLoading" class="scrollable-container">
                 <h3>Execution Result</h3>
-                <p *ngFor="let line of section.fnResult.value">{{ line }}</p>
+                  <p *ngFor="let line of section.fnResult.value">{{ line }}</p>
               </div>
             </mat-card>   
           </ng-container>
@@ -57,4 +57,95 @@
         <br>
     </ng-container>
   </div>  
+</div> -->
+
+
+<div [ngClass]="lightTheme ? 'light-theme' : 'dark-theme'" class="main-container">
+  <!-- Header Section -->
+  <div class="header">
+    <mat-slide-toggle
+      class="theme-toggle"
+      [checked]="lightTheme"
+      (change)="onAppThemeChange($event)"
+    >
+      <span [ngClass]="lightTheme ? 'light-theme-text' : 'dark-theme-text'">{{ Theme }}</span>
+    </mat-slide-toggle>
+  </div>
+
+  <!-- Content Section -->
+  <div class="container">
+    <div class="heading-container">
+      <h1 class="heading">JavaScript Runbook</h1>
+      <img
+        src="assets/images/js.png"
+        alt="JavaScript Logo"
+        class="heading-image"
+      />
+    </div>
+
+      <!-- Index Section -->
+  <div class="index-container">
+    <h2>Index</h2>
+    <ul>
+      <li *ngFor="let concepts of contentSections; let i = index">
+        <a href="#" (click)="scrollToConcept('concept-' + i)">{{ concepts.concept }}</a>
+      </li>
+    </ul>
+  </div>
+
+
+    <ng-container *ngFor="let concepts of contentSections; let i = index">
+      <div [id]="'concept-' + i" class="concept-section">
+        <h2 class="concept">{{ concepts.concept }}</h2>
+        <h3 class="sub-concept">
+          {{ concepts.concept_desc }}
+        </h3>
+        <ng-container *ngFor="let section of concepts.sub_concepts">
+          <h3 class="sub-concept-heading">
+            {{ section.sub_concept_heading }}
+          </h3>
+          <h4 class="sub-concept-desc">
+            {{ section.sub_concept_desc }}
+          </h4>
+          <ng-container *ngIf="section.fnCode">
+            <pre>
+              <code [highlight]="section.fnCode" language="javascript"></code>
+            </pre>
+
+            <button
+              *ngIf="section.fnResult"
+              mat-raised-button
+              color="primary"
+              class="execute-button"
+              (click)="executeCode(section.fnCode, section.fnResult, section)"
+            >
+              Execute
+            </button>
+
+            <mat-card
+              *ngIf="section.showCard"
+              class="result-card"
+              [ngClass]="lightTheme ? 'light-theme' : 'dark-theme'"
+            >
+              <div *ngIf="section.isLoading" class="spinner-container">
+                <mat-spinner></mat-spinner>
+              </div>
+              <div *ngIf="!section.isLoading" class="scrollable-container">
+                <h3>Execution Result</h3>
+                <p *ngFor="let line of section.fnResult.value">{{ line }}</p>
+              </div>
+            </mat-card>
+          </ng-container>
+          <br />
+          <br />
+        </ng-container>
+        <br />
+        <br />
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Scroll to Top Button -->
+  <button class="scroll-to-top" (click)="scrollToTop()">Scroll to Top</button>
 </div>
+
