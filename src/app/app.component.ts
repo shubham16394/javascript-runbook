@@ -1482,28 +1482,6 @@ console.log(this); // undefined
 // CommonJS (Node.js)
 console.log(this); // {} (module.exports)
 `,    
-        },
-        {
-          "sub_concept_heading": "8. this in setTimeout and setInterval",
-          "sub_concept_desc": "In a setTimeout or setInterval callback, this depends on the calling context.",
-          fnCode: 
-`setTimeout(function () {
-  console.log(this); // Window (in browsers)
-}, 1000);
-
-const obj = {
-  name: "Timer",
-  start: function () {
-    setTimeout(() => {
-      console.log(this.name); // "Timer" (arrow function inherits this)
-    }, 1000);
-  },
-};
-
-obj.start();`,    
-          fnResult: {value: ''},
-          showCard: false,
-          isLoading: false
         }
       ]
     },
