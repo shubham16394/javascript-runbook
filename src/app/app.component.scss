@@ -24,7 +24,7 @@
 .container {
     max-width: 600px;
     margin: 0 auto;
-    text-align: center;
+    text-align: left !important;
     padding-left: 20px;
     padding-right: 20px;
 }
@@ -143,6 +143,7 @@ body.dark-theme {
 }
 
 .index-container {
+    text-align: center !important;
     margin-bottom: 20px;
     color: var(--primary-color);
 }
@@ -178,3 +179,17 @@ body.dark-theme {
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
+
+.sandbox {
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  border: none;
+  display: none;
+}
+
+.code-editor {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
