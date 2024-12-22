@@ -98,6 +98,7 @@ export class AppComponent implements OnInit {
     variable.value = [];
     console.log(variable);
     const iframe = this.codeFrame.nativeElement as HTMLIFrameElement;
+    console.log('iframe', iframe);
     this.variable = variable;
     this.section = section;
   
@@ -105,6 +106,7 @@ export class AppComponent implements OnInit {
       if (code) {
         // Reload the iframe before executing code
         const originalSrc = iframe.src; // Store the original iframe src
+        console.log('originalSrc', originalSrc);
         iframe.src = 'about:blank'; // Clear the iframe content
         setTimeout(() => {
           iframe.src = originalSrc; // Restore the original iframe src after a short delay
