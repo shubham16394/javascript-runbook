@@ -1,59 +1,30 @@
-import { Component, inject, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HighlightLoader } from 'ngx-highlightjs';
 import { Highlight } from 'ngx-highlightjs';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { stringify } from "flatted";
 import { ChangeDetectorRef } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
-import { EditorComponent } from 'ngx-monaco-editor-v2';
-import { FormsModule } from '@angular/forms';
-
-
-
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, Highlight, MatSlideToggleModule, MatButtonModule, MatCardModule, MatProgressSpinnerModule, EditorComponent, FormsModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, Highlight, MatSlideToggleModule, MatButtonModule, MatCardModule, MatProgressSpinnerModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
-  @ViewChild('codeFrame') codeFrame!: ElementRef;
-  @ViewChild('output') outputDiv!: ElementRef;
   private hljsLoader: HighlightLoader = inject(HighlightLoader);
   title = 'js-runbook';
   lightTheme = true;
   Theme = 'Light'
-  editorTheme = 'vs'
 
   showCard: boolean = false;
   isLoading: boolean = false;
-  iframeUrl: any;
-  variable: any;
-  section: any;
-  editorOptions = {
-    language: 'javascript',
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    lineHeight: 20,
-    fontSize: 14,
-    wordWrap: 'on',
-    wrappingIndent: 'indent',
-    theme: this.editorTheme,
-  };
 
-  code: any = ``;
-
-
-
-  constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer) {
-    this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl('assets/iframe.html')
-  }
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.hljsLoader.setTheme('assets/styles/atom-one-light.css');
@@ -72,88 +43,117 @@ export class AppComponent implements OnInit {
     this.hljsLoader.setTheme(this.lightTheme ? 'assets/styles/atom-one-light.css' : 'assets/styles/atom-one-dark.css');
     const body = document.body;
     if (this.lightTheme) {
-      this.editorTheme = 'vs';
       body.classList.remove('dark-theme');
       body.classList.add('light-theme');
     } else {
-      this.editorTheme = 'vs-dark';
       body.classList.remove('light-theme');
       body.classList.add('dark-theme');
     }
-    this.editorOptions = {
-      language: 'javascript',
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      lineHeight: 20,
-      fontSize: 14,
-      wordWrap: 'on',
-      wrappingIndent: 'indent',
-      theme: this.editorTheme,
-    };    
+  }
+
+  checkType(val: any) {
+    console.log('val', val)
+    if(Array.isArray(val)){
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 
   executeCode(code: string, variable: any, section?: any) {
-    variable.value = [];
-    console.log(variable);
-    const iframe = this.codeFrame.nativeElement as HTMLIFrameElement;
-    this.variable = variable;
-    this.section = section;
+    section.showCard = true;
+    section.isLoading = true;
   
-    try {
-      if (code) {
-        // Reload the iframe before executing code
-        const originalSrc = iframe.src; // Store the original iframe src
-        iframe.src = 'about:blank'; // Clear the iframe content
+    this.executeCodeConsole(code)
+      .then((output) => {
         setTimeout(() => {
-          iframe.src = originalSrc; // Restore the original iframe src after a short delay
-        }, 50);
-  
-        section.showCard = true;
-        section.isLoading = true;
-  
-        // Wait for iframe to reload before executing the code
-        setTimeout(() => {
-          const contentWindow = iframe.contentWindow as any;
-  
-          // Attach error handling to the iframe
-          contentWindow.onerror = (message: string, source: string, lineno: number, colno: number, error: Error) => {
-            setTimeout(() => {
-              variable.value.push(error);
-              section.isLoading = false;  
-            }, 0);    
-          };
-  
-          // Execute the code inside the iframe
-          try {
-            contentWindow.eval(code);
-          } catch (err: any) {
-            setTimeout(() => {
-              variable.value.push(err);
-              section.isLoading = false;  
-            }, 0);    
-
+          section.isLoading = false;
+        }, 1000)
+        output = output.map((e: any) => {
+          if(typeof e === 'string') return e.split('\n');
+          else if(typeof e === 'object') {
+            if(this.isCircular(e)){
+              return stringify(e);
+            }
+            else {
+              return JSON.stringify(e);
+            }
           }
-        }, 100);
-      }
-    } catch (err: any) {
-      setTimeout(() => {
-        variable.value.push(err);
+          else return e+'';
+        })
+        variable.value = output;
+      })
+      .catch((error) => {
         section.isLoading = false;
-      }, 0);
+        variable.value = [`${error}`];
+        console.error('Execution error:', error);
+      });
+  }
+
+  isCircular(obj: any) {
+    try {
+      JSON.stringify(obj);
+      return false; // No circular reference
+    } catch (e) {
+      return true; // Circular reference detected
     }
   }
-    
-
-  @HostListener('window:message', ['$event'])
-  onMessage(event: MessageEvent) {
-    if(this.variable) {
-      console.log('this.variable', this.variable, event)
-      this.variable.value.push(event.data.message); 
-    }
-    if(this.section?.isLoading) {
-      this.section.isLoading = false;
-    }
-    if (event.origin !== window.origin) return;
+  
+  executeCodeConsole(code: string): Promise<any> {
+    const output: any[] = []; // Store all logged values in an array
+    const originalConsoleLog = console.log;
+  
+    return new Promise((resolve, reject) => {
+      try {
+        // Override console.log to capture output
+        console.log = (message: any) => {
+          output.push(message); // Add each logged value to the array
+        };
+  
+        const asyncTracker: Promise<void>[] = [];
+  
+        // Replace setTimeout in the user's code with a tracked version
+        const originalSetTimeout = setTimeout;
+        (window as any).setTimeout = (
+          callback: (...args: any[]) => void,
+          delay: number,
+          ...args: any[]
+        ) => {
+          const promise = new Promise<void>((resolveTimeout) => {
+            originalSetTimeout(() => {
+              callback(...args);
+              resolveTimeout();
+            }, delay);
+          });
+          asyncTracker.push(promise);
+        };
+  
+        // Execute the user's code
+        const fn = new Function(code);
+        fn();
+  
+        // Wait for all asynchronous tasks to finish
+        Promise.all(asyncTracker)
+          .then(() => {
+            if (output.length === 0) {
+              console.log("Check Developer console. For mobile open chrome://inspect in new tab and 'start logging' then execute the code.");
+            }
+            console.log = originalConsoleLog;
+            resolve(output);
+          })
+          .catch((error) => reject(error))
+          .finally(() => {
+            // Restore the original setTimeout and console.log
+            (window as any).setTimeout = originalSetTimeout;
+            console.log = originalConsoleLog;
+          });
+      } catch (error: any) {
+        reject(error);
+        // Restore the original console.log even in case of error
+        console.log = originalConsoleLog;
+      }
+    });
   }
 
   scrollToConcept(id: string): void {
@@ -167,25 +167,7 @@ export class AppComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }  
 
-  toggleEdit(section: any): void {
-    section.isEditing = !section.isEditing;
   
-    // If editing is disabled, reset the code
-    if (!section.isEditing) {
-      this.code = section.fnCode; // Update the bound `code` variable with the new value
-    }
-  }
-  
-  copyToClipboard(text: string): void {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        console.log('Code copied to clipboard!');
-      },
-      (err) => {
-        console.error('Failed to copy code: ', err);
-      }
-    );
-  }  
     
   contentSections: any = [
     {
@@ -201,7 +183,7 @@ export class AppComponent implements OnInit {
 function greet() {
     console.log("Hello, World!");
 }`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -212,7 +194,7 @@ function greet() {
 `console.log(x); // Output: undefined
 var x = 5;
 console.log(x); // Output: 5`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -222,7 +204,7 @@ console.log(x); // Output: 5`,
           fnCode: 
 `console.log(y); // ReferenceError
 let y = 10;`,          
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -230,7 +212,7 @@ let y = 10;`,
           fnCode: 
 `console.log(z); // ReferenceError
 const z = 20;`,          
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -244,7 +226,7 @@ class MyClass {
     this.name = "Example";
   }
 }`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -266,7 +248,7 @@ class MyClass {
 }
 
 demoTDZ();`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -276,7 +258,7 @@ demoTDZ();`,
           fnCode: 
 `console.log(a);
 let a = 10;`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -284,7 +266,7 @@ let a = 10;`,
           fnCode: 
 `console.log(b);
 const b = 10;`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -296,7 +278,7 @@ class TestClass {
         this.name = "Test Name";
     }
 }`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -308,7 +290,7 @@ class TestClass {
 console.log(a);
 let a = 100;
 console.log(a);`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -316,7 +298,7 @@ console.log(a);`,
           fnCode: 
 `const b;
 console.log(b);`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -328,7 +310,7 @@ console.log(b);`,
 console.log(a);
 a = 100;
 console.log(a);`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -344,7 +326,7 @@ console.log(a);`,
 `console.log(x); // Output: undefined
 var x = 5;
 console.log(x); // Output: 5`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -359,7 +341,7 @@ console.log(x); // Output: 5`,
     }
 }
 fn();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -367,7 +349,7 @@ fn();`,
           fnCode: 
 `const x = 89;          // Script Scope
 console.log(x);`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false            
         },
@@ -383,7 +365,7 @@ console.log(x);`,
     }
   }
 }`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -402,7 +384,7 @@ function fn() { // can be redeclared but latest definition will be used
     console.log(x);
 }
 fn();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -413,7 +395,7 @@ console.log(subtract(10, 5)); // ReferenceError
 const subtract = function (x, y) {
   return x - y;
 };`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -424,7 +406,7 @@ console.log(subtract(10, 5)); // TypeError
 var subtract = function (x, y) {
   return x - y;
 };`, 
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -459,7 +441,7 @@ console.log(window.globalLet);  // undefined
 console.log(window.globalConst); // undefined
 console.log(this.globalLet);    // undefined
 console.log(this.globalConst);  // undefined`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         }
@@ -481,7 +463,7 @@ function example() {
 
 example();
 console.log(x); // 10 (global x remains unchanged)`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -493,7 +475,7 @@ if(true) {
   console.log(x);
 }
 console.log(x);`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -507,7 +489,7 @@ if(true) {
   console.log(x);
 }
 console.log(x);`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -520,7 +502,7 @@ if(true) {
   console.log(x);
 }
 console.log(x);`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -535,7 +517,7 @@ function shadowExample(z) {
 
 shadowExample(60); // 60 (parameter shadows the outer variable)
 console.log(z); // 50 (outer 'z' is not affected)`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false  
         },
@@ -560,7 +542,7 @@ const counter = createCounter();
 console.log(counter()); // 1
 console.log(counter()); // 2
 console.log(counter()); // 3`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
           
@@ -577,7 +559,7 @@ console.log(counter()); // 3`,
 const double = multiply(2);
 console.log(double(5)); // 10
 console.log(double(8)); // 16`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
           
@@ -595,7 +577,7 @@ console.log(double(8)); // 16`,
 
 const closure = createClosure(); // 'largeData' is retained in memory
 closure();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -610,7 +592,7 @@ closure();`,
   funcs.forEach((func) => func()); // Outputs: 3, 3, 3
 }
 loopIssue();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -624,7 +606,7 @@ loopIssue();`,
   funcs.forEach((func) => func());
 }
 loopIssueResolved();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -640,7 +622,7 @@ loopIssueResolved();`,
     }
 }
 fn();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -655,7 +637,7 @@ fn();`,
     }
 }
 fn();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -671,7 +653,7 @@ fn();`,
     }
 }
 fn();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -689,7 +671,7 @@ fn();`,
     }
 }
 fn();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -706,7 +688,7 @@ fn();`,
   console.log("Hello, World!");
 }
 greet();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false    
         },
@@ -717,7 +699,7 @@ greet();`,
   console.log("Hello, World!");
 };
 greet();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -726,7 +708,7 @@ greet();`,
           fnCode: 
 `const greet = () => console.log("Hello, World!");
 greet();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -738,7 +720,7 @@ greet();`,
   console.log("Hello, World!");
 };
 greet();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -748,7 +730,7 @@ greet();`,
 `(function () {
   console.log("This is an IIFE");
 })();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -761,7 +743,7 @@ greet();`,
 }
 const person = new Person("Alice");
 console.log(person.name); // Alice`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -776,7 +758,7 @@ console.log(person.name); // Alice`,
 }
 const gen = numbers();
 console.log(gen.next().value); // 1`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -794,7 +776,7 @@ function fn() {
   return new Promise((resolve, reject) => {resolve('Fetched Data')});
 }
 fetchData();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -806,7 +788,7 @@ fetchData();`,
   return callback();
 }
 higherOrderFunction(() => console.log("I'm a callback function!"));`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -842,7 +824,7 @@ const operations = [
   (a, b) => a * b,
 ];
 console.log(operations[0](5, 3)); // 8`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         }
@@ -883,7 +865,7 @@ Promise.resolve().then(() => {
 
 // Another synchronous log
 console.log("Script End");`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false     
         },
@@ -906,7 +888,7 @@ setTimeout(() => {
 }, 0);
 
 console.log("End");`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -927,7 +909,7 @@ setTimeout(() => {
 }, 0);
 
 console.log("Synchronous Task");`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
           
@@ -967,7 +949,7 @@ console.log("Synchronous Task");`,
 `const numbers = [1, 2, 3];
 const squares = numbers.map(num => num ** 2);
 console.log(squares); // [1, 4, 9]`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -977,7 +959,7 @@ console.log(squares); // [1, 4, 9]`,
 `const numbers = [1, 2, 3, 4, 5];
 const evens = numbers.filter(num => num % 2 === 0);
 console.log(evens); // [2, 4]`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -987,7 +969,7 @@ console.log(evens); // [2, 4]`,
 `const numbers = [1, 2, 3, 4];
 const sum = numbers.reduce((total, num) => total + num, 0);
 console.log(sum); // 10`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -997,7 +979,7 @@ console.log(sum); // 10`,
 `const numbers = [1, 2, 3];
 numbers.forEach(num => console.log(num * 2));
 // Output: 2, 4, 6`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         }
@@ -1033,7 +1015,7 @@ fetchData(() => {
   });
 });
 `,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1050,7 +1032,7 @@ fetchData(() => {
 fetchData((data) => {
   console.log(data);
 });`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1094,7 +1076,7 @@ myPromise
     console.error("Rejected:"); // Executes if rejected
     console.error(error);
   });`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1124,10 +1106,7 @@ fetchData()
   })
   .catch((error) => {
     console.error("Error:", error);
-  });`,        
-        fnResult: {value: []},
-        showCard: false,
-        isLoading: false
+  });`          
         },
         {
           "sub_concept_heading": "Any no. of then, catch and finally can be called in chaining after each statment. 'then' after catch will always will called.",
@@ -1158,7 +1137,7 @@ fetchData()
     .finally(() => {
         console.log('another finally called')
     })`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1168,7 +1147,7 @@ fetchData()
           fnCode: 
 `Promise.resolve("Resolved immediately")
   .then((value) => console.log(value));`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1177,7 +1156,7 @@ fetchData()
           fnCode: 
 `Promise.reject("Rejected immediately")
   .catch((reason) => console.error(reason));`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1191,7 +1170,7 @@ const p3 = Promise.resolve(3);
 Promise.all([p1, p2, p3])
   .then((values) => console.log(values)) // [1, 2, 3]
   .catch((error) => console.error(error));`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1203,7 +1182,7 @@ const p2 = new Promise((resolve) => setTimeout(() => resolve("Second"), 2000));
 
 Promise.race([p1, p2])
   .then((value) => console.log(value)); // "First"`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1215,7 +1194,7 @@ const p2 = Promise.reject("Error");
 const p3 = Promise.resolve(3);
 
 Promise.allSettled([p1, p2, p3]).then((results) => console.log(results));`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1229,7 +1208,7 @@ const p3 = new Promise((resolve) => setTimeout(resolve, 300, 'Resolved 2'));
 Promise.any([p1, p2, p3])
   .then((result) => console.log(result)) // Output: 'First fulfilled: Resolved 1'
   .catch((error) => console.error('All promises rejected:', error));`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1245,7 +1224,7 @@ Promise.any([p1, p2])
     console.error('All promises rejected:', error);
     console.error('Reasons:', error.errors); // Access all rejection reasons
   });`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         }
@@ -1283,7 +1262,7 @@ async function main() {
 }
 
 main();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1305,7 +1284,7 @@ async function main() {
 }
 
 main();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1331,7 +1310,7 @@ async function main() {
 }
 
 main();`,
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1343,25 +1322,11 @@ main();`,
       "sub_concepts": [
         {
           "sub_concept_heading": "1. Global Context",
-          "sub_concept_desc": "In the global scope this refers to the global object (window in browsers or global in Node.js).",
-          fnCode: 
-`console.log(this); // Window object (in browsers)`,        
-          fnResult: {value: []},
-          showCard: false,
-          isLoading: false
-        },
-        {
-          "sub_concept_heading": "2. Inside a Function",
-          "sub_concept_desc": "Non-Strict Mode: this refers to the global object. Strict Mode: this is undefined.",
+          "sub_concept_desc": "In the global scope (non-strict mode), this refers to the global object (window in browsers or global in Node.js). In strict mode, this is undefined.",
           fnCode: 
 `// Non-strict mode
-function example() {
-  console.log(this); // Window object (in browsers)
-}
-
-example(); 
-`,
-          fnResult: {value: []},
+console.log(this); // Window object (in browsers)`,        
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1369,12 +1334,26 @@ example();
           fnCode: 
 `// Strict mode
 "use strict";
-function example() {
-  console.log(this); // undefined
+console.log(this); // undefined`,        
+          fnResult: {value: ''},
+          showCard: false,
+          isLoading: false
+        },
+        {
+          "sub_concept_heading": "2. Inside a Function",
+          "sub_concept_desc": "Non-Strict Mode: this refers to the global object. Strict Mode: this is undefined.",
+          fnCode: 
+`function example() {
+  console.log(this);
 }
 
-example(); `,
-          fnResult: {value: []},
+// Non-strict mode
+example(); // Window object (in browsers)
+
+// Strict mode
+"use strict";
+example(); // undefined`,
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1390,7 +1369,7 @@ example(); `,
 };
 
 obj.greet(); // "JavaScript"`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1418,7 +1397,7 @@ const objWithNormalFunction = {
 };
 
 objWithNormalFunction.greet(); // "JavaScript"`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1432,7 +1411,7 @@ objWithNormalFunction.greet(); // "JavaScript"`,
 
 const person1 = new Person("John");
 console.log(person1.name); // "John"`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1451,7 +1430,7 @@ console.log(person1.name); // "John"`,
 
 const person = new Person("John");
 person.greet(); // "Hello, John"`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1469,7 +1448,7 @@ button.addEventListener("click", function () {
 
 button.addEventListener("click", () => {
   console.log(this); // Global object or undefined (arrow function)
-});`        
+});`,    
         },
         {
           "sub_concept_heading": "8. this in setTimeout and setInterval",
@@ -1489,7 +1468,7 @@ const obj = {
 };
 
 obj.start();`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1524,7 +1503,7 @@ function greet(greeting, punctuation) {
 }
 
 greet.call(person, "Hello", "!"); // Output: Hello, John Doe!`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1542,7 +1521,7 @@ function greet(greeting, punctuation) {
 }
 
 greet.apply(person, ["Hi", "?"]); // Output: Hi, Jane Smith?`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1561,7 +1540,7 @@ function greet(greeting, punctuation) {
 
 const boundGreet = greet.bind(person, "Hey");
 boundGreet("!!!"); // Output: Hey, Alice Brown!!!`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         }
@@ -1581,7 +1560,7 @@ boundGreet("!!!"); // Output: Hey, Alice Brown!!!`,
 
 console.log(obj.toString()); // Output: [object Object]
 // toString is not in obj, so JavaScript looks in Object.prototype.`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1601,7 +1580,7 @@ const alice = new Person("Alice");
 alice.greet(); // Output: Hello, my name is Alice
 
 console.log(alice.__proto__ === Person.prototype); // true`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1620,7 +1599,7 @@ child.name = "Child";
 
 child.greet(); // Output: Hello from parent!
 console.log(child.__proto__ === parent); // true`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         },
@@ -1640,7 +1619,7 @@ dog.barks = true;
 
 console.log(dog.eats); // true (inherited from animal)
 dog.walk();            // Output: Animal walks`,    
-          fnResult: {value: []},
+          fnResult: {value: ''},
           showCard: false,
           isLoading: false
         }
