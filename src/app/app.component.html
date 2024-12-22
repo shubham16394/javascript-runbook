@@ -55,27 +55,54 @@
             {{ section.sub_concept_desc }}
           </h4>
           <ng-container *ngIf="section.fnCode">
-            <!-- <pre>
-              <code [highlight]="section.fnCode" language="javascript"></code>
-            </pre> -->
 
-            <ngx-monaco-editor
-            [options]="editorOptions"
-            [(ngModel)]="section.fnCode"
-            class="code-editor"
-            ></ngx-monaco-editor>
-        
-
-            <button
-              *ngIf="section.fnResult"
-              mat-raised-button
-              color="primary"
-              class="execute-button"
-              (click)="executeCode(section.fnCode, section.fnResult, section)"
-            >
-              Execute
-            </button>
-
+            <div class="code-container">
+              <button
+                mat-icon-button
+                class="copy-button"
+                color="basic"
+                (click)="copyToClipboard(section.fnCode)"
+                matTooltip="Copy to Clipboard"
+              >
+                <mat-icon>file_copy</mat-icon>
+              </button>
+            
+              <div *ngIf="!section.isEditing">
+                <pre>
+                  <code [highlight]="section.fnCode" language="javascript"></code>
+                </pre>
+              </div>
+            
+              <ngx-monaco-editor
+                *ngIf="section.isEditing"
+                [options]="editorOptions"
+                [(ngModel)]="section.fnCode"
+                class="code-editor"
+              ></ngx-monaco-editor>
+            </div>
+            
+            <div class="button-group">
+              <!-- Edit Button -->
+              <button
+                mat-raised-button
+                color="accent"
+                (click)="toggleEdit(section)"
+              >
+                {{ section.isEditing ? 'Save' : 'Edit' }}
+              </button>
+            
+              <!-- Execute Button -->
+              <button
+                *ngIf="section.fnResult"
+                mat-raised-button
+                color="primary"
+                (click)="executeCode(section.fnCode, section.fnResult, section)"
+              >
+                Execute
+              </button>
+            </div>
+            
+            
             <mat-card
               *ngIf="section.showCard"
               class="result-card"

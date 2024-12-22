@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { HighlightLoader } from 'ngx-highlightjs';
 import { Highlight } from 'ngx-highlightjs';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,7 +18,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, Highlight, MatSlideToggleModule, MatButtonModule, MatCardModule, MatProgressSpinnerModule, EditorComponent, FormsModule],
+  imports: [CommonModule, Highlight, MatSlideToggleModule, MatButtonModule, MatCardModule, MatProgressSpinnerModule, EditorComponent, FormsModule, MatIconModule, MatTooltipModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -71,33 +73,23 @@ export class AppComponent implements OnInit {
     const body = document.body;
     if (this.lightTheme) {
       this.editorTheme = 'vs';
-      this.editorOptions = {
-        language: 'javascript',
-        minimap: { enabled: false },
-        scrollBeyondLastLine: false,
-        lineHeight: 20,
-        fontSize: 14,
-        wordWrap: 'on',
-        wrappingIndent: 'indent',
-        theme: this.editorTheme,
-      };    
       body.classList.remove('dark-theme');
       body.classList.add('light-theme');
     } else {
       this.editorTheme = 'vs-dark';
-      this.editorOptions = {
-        language: 'javascript',
-        minimap: { enabled: false },
-        scrollBeyondLastLine: false,
-        lineHeight: 20,
-        fontSize: 14,
-        wordWrap: 'on',
-        wrappingIndent: 'indent',
-        theme: this.editorTheme,
-      };    
       body.classList.remove('light-theme');
       body.classList.add('dark-theme');
     }
+    this.editorOptions = {
+      language: 'javascript',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      lineHeight: 20,
+      fontSize: 14,
+      wordWrap: 'on',
+      wrappingIndent: 'indent',
+      theme: this.editorTheme,
+    };    
   }
 
   executeCode(code: string, variable: any, section?: any) {
