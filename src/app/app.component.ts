@@ -52,7 +52,7 @@ export class AppComponent implements OnInit {
 
 
   constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer) {
-    this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl('assets/iframe.html')
+    this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`${window.location.origin}/assets/iframe.html`)
   }
 
   ngOnInit(): void {
