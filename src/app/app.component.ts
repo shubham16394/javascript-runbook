@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, ViewChild, ElementRef, HostListener, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HighlightLoader } from 'ngx-highlightjs';
 import { Highlight } from 'ngx-highlightjs';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -51,8 +51,10 @@ export class AppComponent implements OnInit {
 
 
 
-  constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer) {
-    this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`${window.location.origin}/assets/iframe.html`)
+  constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer, @Inject(PLATFORM_ID) private platformId: object) {
+    if (isPlatformBrowser(this.platformId)) {
+      this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`${window.location.origin}/assets/iframe.html`);
+    }
   }
 
   ngOnInit(): void {
