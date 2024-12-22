@@ -24,7 +24,7 @@
 .container {
     max-width: 600px;
     margin: 0 auto;
-    text-align: center;
+    text-align: left !important;
     padding-left: 20px;
     padding-right: 20px;
 }
@@ -143,6 +143,7 @@ body.dark-theme {
 }
 
 .index-container {
+    text-align: center !important;
     margin-bottom: 20px;
     color: var(--primary-color);
 }
@@ -178,3 +179,75 @@ body.dark-theme {
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
+
+.sandbox {
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  border: none;
+  display: none;
+}
+
+.code-editor {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.button-group {
+    display: flex;
+    gap: 8px; /* Space between buttons */
+    justify-content: flex-start; /* Align buttons to the left */
+    margin-top: 10px;
+}
+
+.button-group button {
+    flex: 0 0 auto; /* Prevent buttons from stretching */
+    padding: 8px 16px; /* Optional: Add padding to buttons */
+}
+
+.execute-button {
+    margin-left: auto; /* Optional: Move Execute button to the right */
+}
+
+@media (max-width: 600px) {
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .button-group button {
+        margin-bottom: 8px;
+    }
+}
+
+/* Container for code block */
+.code-container {
+    position: relative;
+  }
+  
+  /* Copy button styles */
+  .copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10; /* Ensure the button appears above the code block */
+    background-color: transparent; /* Optional: transparent background */
+    color: var(--primary-color); /* Match theme color */
+    cursor: pointer;
+    border: none;
+    padding: 4px;
+  }
+  
+  .copy-button:hover {
+    color: var(--hover-primary-color); /* Optional: Add hover effect */
+  }
+  
+  pre {
+    margin: 0;
+    padding: 1rem;
+    background: var(--code-background);
+    border-radius: 4px;
+    overflow: auto;
+    position: relative;
+  }
+  
+

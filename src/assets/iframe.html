@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iframe Executor</title>
+    <!-- Load Flatted first -->
+    <script src="https://cdn.jsdelivr.net/npm/flatted@3.2.2/min.js"></script>
+</head>
+<body>
+
+<script>
+// Custom serialization logic for special objects
+function stringifySpecialObjects(data) {
+    if(data === undefined || data === null) {
+        return data + '';
+    }
+    if (data === window) {
+        // Provide a meaningful string representation
+        return Flatted.stringify(data);
+    }
+    if (data instanceof HTMLElement) {
+        return `<${data.tagName.toLowerCase()} id="${data.id}" class="${data.className}">`;
+    }
+    if (typeof data === 'function') {
+        return `function ${data.name || '(anonymous)'}() { ... }`;
+    }
+    if (typeof data === 'object' && data !== null) {
+        if (isCircular(data)) {
+            return Flatted.stringify(data); // Serialize circular objects
+        } else {
+            return JSON.stringify(data, null, 2); // Pretty-print non-circular objects
+        }
+    }
+    return data; // Return primitive values (string, number, etc.) as-is
+}
+
+// Check if an object has circular references
+function isCircular(obj) {
+    try {
+        JSON.stringify(obj);
+        return false; // No circular reference
+    } catch (e) {
+        return true; // Circular reference detected
+    }
+}
+
+// Serialize data for postMessage
+function safeSerialize(data) {
+    try {
+        return stringifySpecialObjects(data);
+    } catch (e) {
+        console.error('Serialization error:', e);
+        return '[Unserializable]';
+    }
+}
+
+// Override console.log to send logs back to the parent
+const originalLog = console.log;
+console.log = function(...args) {
+    const serializedArgs = args.map(arg => safeSerialize(arg));
+    parent.postMessage({ type: 'log', message: serializedArgs }, '*');
+    originalLog.apply(console, args);
+};
+
+// Override console.error to send errors back to the parent
+const originalError = console.error;
+console.error = function(...args) {
+    const serializedArgs = args.map(arg => safeSerialize(arg));
+    parent.postMessage({ type: 'error', message: serializedArgs }, '*');
+    originalError.apply(console, args);
+};
+</script>
+
+</body>
+</html>
