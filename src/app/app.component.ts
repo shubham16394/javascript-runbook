@@ -148,7 +148,9 @@ export class AppComponent implements OnInit {
   onMessage(event: MessageEvent) {
     if(this.variable) {
       console.log('this.variable', this.variable, event)
-      this.variable.value.push(event.data.message); 
+      if ('message' in event.data) {
+        this.variable.value.push(event.data.message);
+      }
     }
     if(this.section?.isLoading) {
       this.section.isLoading = false;
