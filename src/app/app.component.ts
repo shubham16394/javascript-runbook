@@ -53,8 +53,9 @@ export class AppComponent implements OnInit {
 
   constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer, @Inject(PLATFORM_ID) private platformId: object) {
     if (isPlatformBrowser(this.platformId)) {
-      this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`${window.location.origin}/assets/iframe.html`);
+      this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`./assets/iframe.html`);
     }
+    console.log('Parent Origin:', window.location.origin);
   }
 
   ngOnInit(): void {
@@ -118,6 +119,7 @@ export class AppComponent implements OnInit {
         // Wait for iframe to reload before executing the code
         setTimeout(() => {
           const contentWindow = iframe.contentWindow as any;
+          console.log('Iframe Origin:', contentWindow.location.origin);
   
           // Attach error handling to the iframe
           contentWindow.onerror = (message: string, source: string, lineno: number, colno: number, error: Error) => {
@@ -160,6 +162,9 @@ export class AppComponent implements OnInit {
       this.section.isLoading = false;
     }
     if (event.origin !== window.origin) return;
+    console.log('Parent Origin:', window.location.origin);
+    console.log('Event Origin:', event.origin);
+    console.log('event data', event.data)
   }
 
   scrollToConcept(id: string): void {
