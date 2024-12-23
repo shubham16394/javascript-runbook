@@ -54,8 +54,8 @@ export class AppComponent implements OnInit {
   constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer, @Inject(PLATFORM_ID) private platformId: object) {
     if (isPlatformBrowser(this.platformId)) {
       this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`./assets/iframe.html`);
+      console.log('Parent Origin:', window.location.origin);
     }
-    console.log('Parent Origin:', window.location.origin);
   }
 
   ngOnInit(): void {
@@ -162,7 +162,6 @@ export class AppComponent implements OnInit {
       this.section.isLoading = false;
     }
     if (event.origin !== window.origin) return;
-    console.log('Parent Origin:', window.location.origin);
     console.log('Event Origin:', event.origin);
     console.log('event data', event.data)
   }
