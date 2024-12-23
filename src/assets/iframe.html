@@ -68,7 +68,7 @@ window.onload = () => {
 const originalLog = console.log;
 console.log = function(...args) {
     const serializedArgs = args.map(arg => safeSerialize(arg));
-    parent.postMessage({ type: 'log', message: serializedArgs }, '*');
+    parent.postMessage({ type: 'log', message: serializedArgs }, window.location.origin);
     originalLog.apply(console, args);
 };
 
@@ -76,7 +76,7 @@ console.log = function(...args) {
 const originalError = console.error;
 console.error = function(...args) {
     const serializedArgs = args.map(arg => safeSerialize(arg));
-    parent.postMessage({ type: 'error', message: serializedArgs }, '*');
+    parent.postMessage({ type: 'error', message: serializedArgs }, window.location.origin);
     originalError.apply(console, args);
 };
 </script>
