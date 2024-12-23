@@ -55,6 +55,15 @@ function safeSerialize(data) {
     }
 }
 
+window.onload = () => {
+      console.log("Iframe loaded, sending postMessage...");
+      window.parent.postMessage(
+        { message: 'Test message', additionalData: 'Simulated data' },
+        window.location.origin // Ensure the message is sent to the same origin
+      );
+};
+
+
 // Override console.log to send logs back to the parent
 const originalLog = console.log;
 console.log = function(...args) {
