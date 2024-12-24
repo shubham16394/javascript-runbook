@@ -54,7 +54,6 @@ export class AppComponent implements OnInit {
   constructor(private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer, @Inject(PLATFORM_ID) private platformId: object) {
     if (isPlatformBrowser(this.platformId)) {
       this.iframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`./assets/iframe.html`);
-      console.log('Parent Origin:', window.location.origin);
     }
   }
 
@@ -97,9 +96,7 @@ export class AppComponent implements OnInit {
 
   executeCode(code: string, variable: any, section?: any) {
     variable.value = [];
-    console.log(variable);
     const iframe = this.codeFrame.nativeElement as HTMLIFrameElement;
-    console.log('iframe', iframe);
     this.variable = variable;
     this.section = section;
   
@@ -107,7 +104,6 @@ export class AppComponent implements OnInit {
       if (code) {
         // Reload the iframe before executing code
         const originalSrc = iframe.src; // Store the original iframe src
-        console.log('originalSrc', originalSrc);
         iframe.src = 'about:blank'; // Clear the iframe content
         setTimeout(() => {
           iframe.src = originalSrc; // Restore the original iframe src after a short delay
@@ -119,7 +115,6 @@ export class AppComponent implements OnInit {
         // Wait for iframe to reload before executing the code
         setTimeout(() => {
           const contentWindow = iframe.contentWindow as any;
-          console.log('Iframe Origin:', contentWindow.location.origin);
   
           // Attach error handling to the iframe
           contentWindow.onerror = (message: string, source: string, lineno: number, colno: number, error: Error) => {
@@ -152,8 +147,9 @@ export class AppComponent implements OnInit {
 
   @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
+    if (event.origin !== window.origin) return;
+
     if(this.variable) {
-      console.log('this.variable', this.variable, event)
       if ('message' in event.data) {
         this.variable.value.push(event.data.message);
       }
@@ -161,9 +157,6 @@ export class AppComponent implements OnInit {
     if(this.section?.isLoading) {
       this.section.isLoading = false;
     }
-    if (event.origin !== window.origin) return;
-    console.log('Event Origin:', event.origin);
-    console.log('event data', event.data)
   }
 
   scrollToConcept(id: string): void {
