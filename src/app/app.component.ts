@@ -95,65 +95,11 @@ export class AppComponent implements OnInit {
     };    
   }
 
-  // executeCode(code: string, variable: any, section?: any) {
-  //   variable.value = [];
-  //   console.log(variable);
-  //   const iframe = this.codeFrame.nativeElement as HTMLIFrameElement;
-  //   console.log('iframe', iframe);
-  //   this.variable = variable;
-  //   this.section = section;
-  
-  //   try {
-  //     if (code) {
-  //       // Reload the iframe before executing code
-  //       const originalSrc = iframe.src; // Store the original iframe src
-  //       console.log('originalSrc', originalSrc);
-  //       iframe.src = 'about:blank'; // Clear the iframe content
-  //       setTimeout(() => {
-  //         iframe.src = originalSrc; // Restore the original iframe src after a short delay
-  //       }, 50);
-  
-  //       section.showCard = true;
-  //       section.isLoading = true;
-  
-  //       // Wait for iframe to reload before executing the code
-  //       setTimeout(() => {
-  //         const contentWindow = iframe.contentWindow as any;
-  //         console.log('Iframe Origin:', contentWindow.location.origin);
-  
-  //         // Attach error handling to the iframe
-  //         contentWindow.onerror = (message: string, source: string, lineno: number, colno: number, error: Error) => {
-  //           setTimeout(() => {
-  //             variable.value.push(error);
-  //             section.isLoading = false;  
-  //           }, 0);    
-  //         };
-  
-  //         // Execute the code inside the iframe
-  //         try {
-  //           contentWindow.eval(code);
-  //         } catch (err: any) {
-  //           setTimeout(() => {
-  //             variable.value.push(err);
-  //             section.isLoading = false;  
-  //           }, 0);    
-
-  //         }
-  //       }, 100);
-  //     }
-  //   } catch (err: any) {
-  //     setTimeout(() => {
-  //       variable.value.push(err);
-  //       section.isLoading = false;
-  //     }, 0);
-  //   }
-  // }
-    
   executeCode(code: string, variable: any, section?: any) {
     variable.value = [];
-    console.log('Executing Code:', code);
+    console.log(variable);
     const iframe = this.codeFrame.nativeElement as HTMLIFrameElement;
-  
+    console.log('iframe', iframe);
     this.variable = variable;
     this.section = section;
   
@@ -161,6 +107,7 @@ export class AppComponent implements OnInit {
       if (code) {
         // Reload the iframe before executing code
         const originalSrc = iframe.src; // Store the original iframe src
+        console.log('originalSrc', originalSrc);
         iframe.src = 'about:blank'; // Clear the iframe content
         setTimeout(() => {
           iframe.src = originalSrc; // Restore the original iframe src after a short delay
@@ -169,80 +116,55 @@ export class AppComponent implements OnInit {
         section.showCard = true;
         section.isLoading = true;
   
-        // Wait for iframe to reload before sending the code
+        // Wait for iframe to reload before executing the code
         setTimeout(() => {
-          const iframeWindow = iframe.contentWindow;
-          if (iframeWindow) {
-            // Send the code to the iframe for execution
-            iframeWindow.postMessage(
-              { type: 'execute', code: code },
-              window.location.origin // Ensure the message is sent to the same origin
-            );
-          } else {
-            console.error('Iframe contentWindow is not available.');
-            variable.value.push('Iframe not ready');
-            section.isLoading = false;
+          const contentWindow = iframe.contentWindow as any;
+          console.log('Iframe Origin:', contentWindow.location.origin);
+  
+          // Attach error handling to the iframe
+          contentWindow.onerror = (message: string, source: string, lineno: number, colno: number, error: Error) => {
+            setTimeout(() => {
+              variable.value.push(error);
+              section.isLoading = false;  
+            }, 0);    
+          };
+  
+          // Execute the code inside the iframe
+          try {
+            contentWindow.eval(code);
+          } catch (err: any) {
+            setTimeout(() => {
+              variable.value.push(err);
+              section.isLoading = false;  
+            }, 0);    
+
           }
         }, 100);
       }
     } catch (err: any) {
-      variable.value.push(err);
-      section.isLoading = false;
+      setTimeout(() => {
+        variable.value.push(err);
+        section.isLoading = false;
+      }, 0);
     }
   }
-  
-
-  // @HostListener('window:message', ['$event'])
-  // onMessage(event: MessageEvent) {
-  //   if(this.variable) {
-  //     console.log('this.variable', this.variable, event)
-  //     if ('message' in event.data) {
-  //       this.variable.value.push(event.data.message);
-  //     }
-  //   }
-  //   if(this.section?.isLoading) {
-  //     this.section.isLoading = false;
-  //   }
-  //   if (event.origin !== window.origin) return;
-  //   console.log('Event Origin:', event.origin);
-  //   console.log('event data', event.data)
-  // }
+      
 
   @HostListener('window:message', ['$event'])
-onMessage(event: MessageEvent) {
-  if (event.origin !== window.location.origin) {
-    console.warn('Blocked cross-origin message:', event.origin);
-    return;
+  onMessage(event: MessageEvent) {
+    if(this.variable) {
+      console.log('this.variable', this.variable, event)
+      if ('message' in event.data) {
+        this.variable.value.push(event.data.message);
+      }
+    }
+    if(this.section?.isLoading) {
+      this.section.isLoading = false;
+    }
+    if (event.origin !== window.origin) return;
+    console.log('Event Origin:', event.origin);
+    console.log('event data', event.data)
   }
-
-  const { type, message, result, error } = event.data;
-
-  switch (type) {
-    case 'log':
-      console.log('Iframe log:', message);
-      this.variable?.value.push(...message);
-      break;
-    case 'error':
-      console.error('Iframe error:', message);
-      this.variable?.value.push(...message);
-      break;
-    case 'result':
-      console.log('Execution result:', result);
-      this.variable?.value.push(result);
-      break;
-    case 'executionError':
-      console.error('Execution error:', error);
-      this.variable?.value.push(error);
-      break;
-    default:
-      console.warn('Unknown message type:', type);
-  }
-
-  // Mark section as not loading
-  if (this.section?.isLoading) {
-    this.section.isLoading = false;
-  }
-}
 
   scrollToConcept(id: string): void {
     const element = document.getElementById(id);
