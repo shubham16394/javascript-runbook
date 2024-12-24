@@ -447,7 +447,7 @@ var subtract = function (x, y) {
 
 console.log(window.globalVar); // "I am global"
 console.log(this.globalVar);   // "I am global"`,
-          fnResult: null,
+          fnResult: {value: []},
           showCard: false,
           isLoading: false  
         },
